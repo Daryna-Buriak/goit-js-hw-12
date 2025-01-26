@@ -15,6 +15,7 @@ const searchForm = document.querySelector('.searchForm');
 const gallery = document.querySelector('.gallery');
 const loadMoreBtn = document.querySelector('.load-more-btn');
 let imgBox = '';
+const loader = document.querySelector('.loader');
 
 const lightbox = new SimpleLightbox('.gallery a');
 
@@ -25,7 +26,6 @@ let perPage = 15;
 loadMoreBtn.classList.add('is-hidden');
 
 const searchSubmit = async event => {
-  const loader = document.querySelector('.loader');
   try {
     event.preventDefault();
 
@@ -91,6 +91,7 @@ searchForm.addEventListener('submit', searchSubmit);
 const onLoadMoreBtnClick = async event => {
   try {
     const endMessage = document.querySelector('.endResults');
+    loader.classList.add('show-loader');
 
     const { data } = await fetchPhotosByQuery(searchedEl, page);
 
@@ -101,6 +102,7 @@ const onLoadMoreBtnClick = async event => {
       .join('');
 
     gallery.insertAdjacentHTML('beforeend', galleryTemplate);
+    loader.classList.remove('show-loader');
 
     imgBox = document.querySelector('.gallery-card').getBoundingClientRect();
     let imgHeight = imgBox.height;
