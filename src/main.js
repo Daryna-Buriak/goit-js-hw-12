@@ -13,62 +13,115 @@ import 'simplelightbox/dist/simple-lightbox.min.css';
 
 const searchForm = document.querySelector('.searchForm');
 const gallery = document.querySelector('.gallery');
+const loadMoreBtn = document.querySelector('.load-more-btn');
+let imgBox = '';
 
 const lightbox = new SimpleLightbox('.gallery a');
 
-const searchSubmit = event => {
+let page = 1;
+let searchedEl = '';
+let perPage = 15;
+
+loadMoreBtn.classList.add('is-hidden');
+
+const searchSubmit = async event => {
   const loader = document.querySelector('.loader');
-  event.preventDefault();
+  try {
+    event.preventDefault();
 
-  const searchedEl = searchForm.elements[0].value.trim();
+    searchedEl = searchForm.elements[0].value.trim();
 
-  if (searchedEl === '') {
-    iziToast.error({
-      title: '',
-      message: 'Please enter your request',
-      messageColor: '#fafafb',
-      position: 'topRight',
-      backgroundColor: '#ef4040',
-    });
+    if (searchedEl === '') {
+      iziToast.error({
+        title: '',
+        message: 'Please enter your request',
+        messageColor: '#fafafb',
+        position: 'topRight',
+        backgroundColor: '#ef4040',
+      });
 
-    return;
+      return;
+    }
+
+    page = 1;
+
+    loadMoreBtn.classList.add('is-hidden');
+    loader.classList.add('show-loader');
+
+    const { data } = await fetchPhotosByQuery(searchedEl, page);
+
+    if (data.total === 0) {
+      iziToast.error({
+        title: '',
+        message:
+          'Sorry, there are no images matching your search query. Please try again!',
+        messageColor: '#fafafb',
+        position: 'topRight',
+        backgroundColor: '#ef4040',
+      });
+
+      gallery.innerHTML = '';
+
+      searchForm.reset();
+
+      return;
+    }
+
+    if (data.totalHits > 1) {
+      loadMoreBtn.classList.remove('is-hidden');
+
+      loadMoreBtn.addEventListener('click', onLoadMoreBtnClick);
+    }
+
+    const galleryTemplate = data.hits
+      .map(el => createGalleryCardTemplate(el))
+      .join('');
+
+    gallery.innerHTML = galleryTemplate;
+    lightbox.refresh();
+  } catch (err) {
+    console.log(err);
+  } finally {
+    loader.classList.remove('show-loader');
   }
-
-  document.querySelector('.loader').classList.add('show-loader');
-
-  fetchPhotosByQuery(searchedEl)
-    .then(data => {
-      if (data.total === 0) {
-        iziToast.error({
-          title: '',
-          message:
-            'Sorry, there are no images matching your search query. Please try again!',
-          messageColor: '#fafafb',
-          position: 'topRight',
-          backgroundColor: '#ef4040',
-        });
-
-        gallery.innerHTML = '';
-
-        searchForm.reset();
-
-        return;
-      }
-
-      const galleryTemplate = data.hits
-        .map(el => createGalleryCardTemplate(el))
-        .join('');
-
-      gallery.innerHTML = galleryTemplate;
-      lightbox.refresh();
-    })
-
-    .catch(err => {
-      console.log(err);
-    })
-    .finally(() => {
-      loader.classList.remove('show-loader');
-    });
 };
 
 searchForm.addEventListener('submit', searchSubmit);
+
+const onLoadMoreBtnClick = async event => {
+  try {
+    const endMessage = document.querySelector('.endResults');
+
+    const { data } = await fetchPhotosByQuery(searchedEl, page);
+
+    page += 1;
+
+    const galleryTemplate = data.hits
+      .map(el => createGalleryCardTemplate(el))
+      .join('');
+
+    gallery.insertAdjacentHTML('beforeend', galleryTemplate);
+
+    imgBox = document.querySelector('.gallery-card').getBoundingClientRect();
+    let imgHeight = imgBox.height;
+
+    window.scrollBy({
+      top: imgHeight * 2,
+      behavior: 'smooth',
+    });
+
+    if (page * perPage >= data.totalHits) {
+      loadMoreBtn.classList.add('is-hidden');
+      iziToast.show({
+        title: '',
+        message: "We're sorry, but you've reached the end of search results.",
+        position: 'topRight',
+        color: 'blue',
+      });
+
+      loadMoreBtn.removeEventListener('click', onLoadMoreBtnClick);
+    }
+  } catch (err) {
+    console.log(err);
+  }
+};
