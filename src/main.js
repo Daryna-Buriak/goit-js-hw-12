@@ -93,9 +93,9 @@ const onLoadMoreBtnClick = async event => {
     const endMessage = document.querySelector('.endResults');
     loader.classList.add('show-loader');
 
-    const { data } = await fetchPhotosByQuery(searchedEl, page);
-
     page += 1;
+
+    const { data } = await fetchPhotosByQuery(searchedEl, page);
 
     const galleryTemplate = data.hits
       .map(el => createGalleryCardTemplate(el))
